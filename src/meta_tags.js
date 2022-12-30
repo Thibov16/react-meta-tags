@@ -18,7 +18,6 @@ class MetaTags extends Component {
     this.temporaryElement = document.createElement('div');
     this.root = createRoot(this.temporaryElement);
     this.handleChildrens();
-    this.mounted = true;
   }
   componentDidUpdate(oldProps) {
     if (oldProps.children !== this.props.children) {
@@ -26,7 +25,7 @@ class MetaTags extends Component {
     }
   }
   componentWillUnmount() {
-    if (this.root && this.mounted) {
+    if (this.root) {
       this.root.unmount();
     }
   }
