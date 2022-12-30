@@ -1,5 +1,5 @@
-import React, { Component } from 'react';
-import ReactDOM from 'react-dom';
+import React, { Component, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
 import {
   getDuplicateTitle,
   getDuplicateCanonical,
@@ -16,6 +16,7 @@ class MetaTags extends Component {
 
   componentDidMount() {
     this.temporaryElement = document.createElement('div');
+    this.root = createRoot(this.temporaryElement);
     this.handleChildrens();
   }
   componentDidUpdate(oldProps) {
@@ -24,8 +25,8 @@ class MetaTags extends Component {
     }
   }
   componentWillUnmount() {
-    if (this.temporaryElement) {
-      ReactDOM.unmountComponentAtNode(this.temporaryElement);
+    if (this.root) {
+      this.root.unmount();
     }
   }
   extractChildren() {
@@ -46,59 +47,65 @@ class MetaTags extends Component {
       return;
     }
 
-    const headComponent = <div className="react-head-temp">{children}</div>;
+    function AppWithCallbackAfterRender(props) {
+      let _this = props.this;
 
-    ReactDOM.render(headComponent, this.temporaryElement, () => {
-      const childStr = this.temporaryElement.innerHTML;
-
-      //if html is not changed return
-      if (this.lastChildStr === childStr) {
-        return;
-      }
-
-      this.lastChildStr = childStr;
-
-      const tempHead = this.temporaryElement.querySelector('.react-head-temp');
-
-      // .react-head-temp might not exist when triggered from async action
-      if (tempHead === null) {
-        return;
-      }
-
-      let childNodes = Array.prototype.slice.call(tempHead.children);
-
-      const head = document.head;
-      const headHtml = head.innerHTML;
-
-      //filter children remove if children has not been changed
-      childNodes = childNodes.filter((child) => {
-        return headHtml.indexOf(child.outerHTML) === -1;
-      });
-
-      //create clone of childNodes
-      childNodes = childNodes.map((child) => child.cloneNode(true));
-
-      //remove duplicate title and meta from head
-      childNodes.forEach((child) => {
-        const tag = child.tagName.toLowerCase();
-        if (tag === 'title') {
-          const title = getDuplicateTitle();
-          if (title) removeChild(head, title);
-        } else if (child.id) {
-          // if the element has id defined remove the existing element with that id
-          const elm = getDuplicateElementById(child);
-          if (elm) removeChild(head, elm);
-        } else if (tag === 'meta') {
-          const meta = getDuplicateMeta(child);
-          if (meta) removeChild(head, meta);
-        } else if (tag === 'link' && child.rel === 'canonical') {
-          const link = getDuplicateCanonical(child);
-          if (link) removeChild(head, link);
+      useEffect(() => {
+        const childStr = _this.temporaryElement.innerHTML;
+  
+        //if html is not changed return
+        if (_this.lastChildStr === childStr) {
+          return;
         }
+  
+        _this.lastChildStr = childStr;
+  
+        const tempHead = _this.temporaryElement.querySelector('.react-head-temp');
+  
+        // .react-head-temp might not exist when triggered from async action
+        if (tempHead === null) {
+          return;
+        }
+  
+        let childNodes = Array.prototype.slice.call(tempHead.children);
+  
+        const head = document.head;
+        const headHtml = head.innerHTML;
+  
+        //filter children remove if children has not been changed
+        childNodes = childNodes.filter((child) => {
+          return headHtml.indexOf(child.outerHTML) === -1;
+        });
+  
+        //create clone of childNodes
+        childNodes = childNodes.map((child) => child.cloneNode(true));
+  
+        //remove duplicate title and meta from head
+        childNodes.forEach((child) => {
+          const tag = child.tagName.toLowerCase();
+          if (tag === 'title') {
+            const title = getDuplicateTitle();
+            if (title) removeChild(head, title);
+          } else if (child.id) {
+            // if the element has id defined remove the existing element with that id
+            const elm = getDuplicateElementById(child);
+            if (elm) removeChild(head, elm);
+          } else if (tag === 'meta') {
+            const meta = getDuplicateMeta(child);
+            if (meta) removeChild(head, meta);
+          } else if (tag === 'link' && child.rel === 'canonical') {
+            const link = getDuplicateCanonical(child);
+            if (link) removeChild(head, link);
+          }
+        });
+  
+        appendChild(document.head, childNodes);
       });
-
-      appendChild(document.head, childNodes);
-    });
+    
+      return <div className="react-head-temp">{children}</div>;
+    }
+    
+    this.root.render(<AppWithCallbackAfterRender this={this} />);
   }
   render() {
     this.extractChildren();

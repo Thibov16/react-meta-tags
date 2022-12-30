@@ -1,18 +1,17 @@
 /**
  * react-meta-tags - 1.0.1
  * Author : Sudhanshu Yadav
- * Copyright (c) 2016, 2020 to Sudhanshu Yadav, released under the MIT license.
+ * Copyright (c) 2016, 2022 to Sudhanshu Yadav, released under the MIT license.
  * https://github.com/s-yadav/react-meta-tags
  */
 
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('react'), require('react-dom')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'react', 'react-dom'], factory) :
-  (factory((global.MetaTags = {}),global.React,global.ReactDOM));
-}(this, (function (exports,React,ReactDOM) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('react'), require('react-dom/client')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'react', 'react-dom/client'], factory) :
+  (factory((global.MetaTags = {}),global.React,global.client));
+}(this, (function (exports,React,client) { 'use strict';
 
   var React__default = 'default' in React ? React['default'] : React;
-  ReactDOM = ReactDOM && ReactDOM.hasOwnProperty('default') ? ReactDOM['default'] : ReactDOM;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -195,6 +194,7 @@
       key: "componentDidMount",
       value: function componentDidMount() {
         this.temporaryElement = document.createElement('div');
+        this.root = client.createRoot(this.temporaryElement);
         this.handleChildrens();
       }
     }, {
@@ -207,8 +207,8 @@
     }, {
       key: "componentWillUnmount",
       value: function componentWillUnmount() {
-        if (this.temporaryElement) {
-          ReactDOM.unmountComponentAtNode(this.temporaryElement);
+        if (this.root) {
+          this.root.unmount();
         }
       }
     }, {
@@ -228,65 +228,70 @@
     }, {
       key: "handleChildrens",
       value: function handleChildrens() {
-        var _this = this;
-
         var children = this.props.children;
 
         if (this.context.extract || !children) {
           return;
         }
 
-        var headComponent = React__default.createElement("div", {
-          className: "react-head-temp"
-        }, children);
-        ReactDOM.render(headComponent, this.temporaryElement, function () {
-          var childStr = _this.temporaryElement.innerHTML; //if html is not changed return
+        function AppWithCallbackAfterRender(props) {
+          var _this = props.this;
+          React.useEffect(function () {
+            var childStr = _this.temporaryElement.innerHTML; //if html is not changed return
 
-          if (_this.lastChildStr === childStr) {
-            return;
-          }
-
-          _this.lastChildStr = childStr;
-
-          var tempHead = _this.temporaryElement.querySelector('.react-head-temp'); // .react-head-temp might not exist when triggered from async action
-
-
-          if (tempHead === null) {
-            return;
-          }
-
-          var childNodes = Array.prototype.slice.call(tempHead.children);
-          var head = document.head;
-          var headHtml = head.innerHTML; //filter children remove if children has not been changed
-
-          childNodes = childNodes.filter(function (child) {
-            return headHtml.indexOf(child.outerHTML) === -1;
-          }); //create clone of childNodes
-
-          childNodes = childNodes.map(function (child) {
-            return child.cloneNode(true);
-          }); //remove duplicate title and meta from head
-
-          childNodes.forEach(function (child) {
-            var tag = child.tagName.toLowerCase();
-
-            if (tag === 'title') {
-              var title = getDuplicateTitle();
-              if (title) removeChild(head, title);
-            } else if (child.id) {
-              // if the element has id defined remove the existing element with that id
-              var elm = getDuplicateElementById(child);
-              if (elm) removeChild(head, elm);
-            } else if (tag === 'meta') {
-              var meta = getDuplicateMeta(child);
-              if (meta) removeChild(head, meta);
-            } else if (tag === 'link' && child.rel === 'canonical') {
-              var link = getDuplicateCanonical(child);
-              if (link) removeChild(head, link);
+            if (_this.lastChildStr === childStr) {
+              return;
             }
+
+            _this.lastChildStr = childStr;
+
+            var tempHead = _this.temporaryElement.querySelector('.react-head-temp'); // .react-head-temp might not exist when triggered from async action
+
+
+            if (tempHead === null) {
+              return;
+            }
+
+            var childNodes = Array.prototype.slice.call(tempHead.children);
+            var head = document.head;
+            var headHtml = head.innerHTML; //filter children remove if children has not been changed
+
+            childNodes = childNodes.filter(function (child) {
+              return headHtml.indexOf(child.outerHTML) === -1;
+            }); //create clone of childNodes
+
+            childNodes = childNodes.map(function (child) {
+              return child.cloneNode(true);
+            }); //remove duplicate title and meta from head
+
+            childNodes.forEach(function (child) {
+              var tag = child.tagName.toLowerCase();
+
+              if (tag === 'title') {
+                var title = getDuplicateTitle();
+                if (title) removeChild(head, title);
+              } else if (child.id) {
+                // if the element has id defined remove the existing element with that id
+                var elm = getDuplicateElementById(child);
+                if (elm) removeChild(head, elm);
+              } else if (tag === 'meta') {
+                var meta = getDuplicateMeta(child);
+                if (meta) removeChild(head, meta);
+              } else if (tag === 'link' && child.rel === 'canonical') {
+                var link = getDuplicateCanonical(child);
+                if (link) removeChild(head, link);
+              }
+            });
+            appendChild(document.head, childNodes);
           });
-          appendChild(document.head, childNodes);
-        });
+          return React__default.createElement("div", {
+            className: "react-head-temp"
+          }, children);
+        }
+
+        this.root.render(React__default.createElement(AppWithCallbackAfterRender, {
+          this: this
+        }));
       }
     }, {
       key: "render",
