@@ -196,6 +196,7 @@
         this.temporaryElement = document.createElement('div');
         this.root = client.createRoot(this.temporaryElement);
         this.handleChildrens();
+        this.mounted = true;
       }
     }, {
       key: "componentDidUpdate",
@@ -207,7 +208,7 @@
     }, {
       key: "componentWillUnmount",
       value: function componentWillUnmount() {
-        if (this.root) {
+        if (this.root && this.mounted) {
           this.root.unmount();
         }
       }
